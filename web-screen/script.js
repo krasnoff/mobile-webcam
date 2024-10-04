@@ -27,8 +27,7 @@ async function getMediaStream() {
         // Set local description with the generated offer (SDP)
         await lc.setLocalDescription(offer);
 
-        console.log('SDP Offer:', offer.sdp); // This is your SDP that you can send to the remote peer
-        console.log('SDP Offer formatted:', JSON.stringify(offer)); // This is your SDP that you can send to the remote peer
+        console.log('SDP Offer:', offer); // This is your SDP that you can send to the remote peer
         console.log('Tracks added to RTCPeerConnection');
     } catch (error) {
         console.error('Error accessing media devices:', error);
