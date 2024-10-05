@@ -16,7 +16,7 @@ type SectionProps = PropsWithChildren<{
 
 function App(): React.JSX.Element {
   const [localStream, setLocalStream] = useState<any>(null);
-  const pc = useRef<RTCPeerConnection | null>(null);
+  const lc = useRef<RTCPeerConnection | null>(null);
 
   // Setup WebSocket to signaling server
   const ws = new WebSocket('ws://192.168.1.128:3001');
@@ -37,11 +37,11 @@ function App(): React.JSX.Element {
       setLocalStream(stream);
 
       // Create a new RTCPeerConnection
-      pc.current = new RTCPeerConnection();
+      lc.current = new RTCPeerConnection();
 
       // Add all media tracks (audio + video) to the connection
       stream.getTracks().forEach(track => {
-        pc.current?.addTrack(track, stream);
+        lc.current?.addTrack(track, stream);
       });
 
       // Create SDP offer after the media stream is added
@@ -53,10 +53,10 @@ function App(): React.JSX.Element {
         }
       };
 
-      const offer = await pc.current.createOffer(sessionConstraints);
+      const offer = await lc.current.createOffer(sessionConstraints);
 
       // Set local description with the generated offer (SDP)
-      await pc.current.setLocalDescription(offer);
+      await lc.current.setLocalDescription(offer);
 
       console.log('SDP Offer:', offer); // This is your SDP that you can send to the remote peer
 
