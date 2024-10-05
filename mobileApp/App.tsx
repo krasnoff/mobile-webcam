@@ -5,114 +5,61 @@
  * @format
  */
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
-
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import { Button, Text, View } from 'react-native';
+import { mediaDevices, RTCPeerConnection, RTCView } from 'react-native-webrtc';
 
 type SectionProps = PropsWithChildren<{
   title: string;
 }>;
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+function App(): React.JSX.Element {
+  const [localStream, setLocalStream] = useState<any>(null);
+  const pc = useRef<RTCPeerConnection | null>(null);
+
+  // Function to start the stream and add to RTCPeerConnection
+  const startStream = async () => {
+    try {
+      // Request access to media devices (audio and video)
+      const stream = await mediaDevices.getUserMedia({
+        audio: true,
+        video: {
+          frameRate: 30,
+          facingMode: 'user', // use 'environment' for rear camera
+        },
+      });
+
+      // Set the local stream to display the local video
+      setLocalStream(stream);
+
+      // Create a new RTCPeerConnection
+      pc.current = new RTCPeerConnection();
+
+      // Add all media tracks (audio + video) to the connection
+      stream.getTracks().forEach(track => {
+        pc.current?.addTrack(track, stream);
+      });
+
+      // Set up the connection logic (negotiation, ice candidates, etc.)
+      // You would typically add signaling here
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
+    }
+  }
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={{ flex: 1 }}>
+      <Text>Hello World</Text>
+      {localStream && (
+        <RTCView
+          streamURL={localStream.toURL()}
+          style={{ width: '100%', height: 300 }}
+        />
+      )}
+      <Button title="Start Stream" onPress={startStream} />
     </View>
   );
 }
-
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
 
 export default App;
