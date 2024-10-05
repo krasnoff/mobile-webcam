@@ -18,6 +18,9 @@ function App(): React.JSX.Element {
   const [localStream, setLocalStream] = useState<any>(null);
   const pc = useRef<RTCPeerConnection | null>(null);
 
+  // Setup WebSocket to signaling server
+  const ws = new WebSocket('ws://192.168.1.128:3001');
+
   // Function to start the stream and add to RTCPeerConnection
   const startStream = async () => {
     try {
@@ -41,12 +44,49 @@ function App(): React.JSX.Element {
         pc.current?.addTrack(track, stream);
       });
 
-      // Set up the connection logic (negotiation, ice candidates, etc.)
-      // You would typically add signaling here
+      // Create SDP offer after the media stream is added
+      let sessionConstraints = {
+        mandatory: {
+          OfferToReceiveAudio: true,
+          OfferToReceiveVideo: true,
+          VoiceActivityDetection: true
+        }
+      };
+
+      const offer = await pc.current.createOffer(sessionConstraints);
+
+      // Set local description with the generated offer (SDP)
+      await pc.current.setLocalDescription(offer);
+
+      console.log('SDP Offer:', offer); // This is your SDP that you can send to the remote peer
+
+      // Send offer to the signaling server
+      ws.send(JSON.stringify(offer));
+
     } catch (error) {
       console.error('Error accessing media devices:', error);
     }
   }
+
+  ws.onopen = () => {
+    // connection opened
+    ws.send(JSON.stringify({'sdp': 'something from mobile', 'type': 'test'})); // send a message
+  };
+  
+  ws.onmessage = (e) => {
+    // a message was received
+    console.log(e.data);
+  };
+  
+  ws.onerror = (e) => {
+    // an error occurred
+    console.log(e.message);
+  };
+  
+  ws.onclose = (e) => {
+    // connection closed
+    console.log(e.code, e.reason);
+  };
 
   return (
     <View style={{ flex: 1 }}>

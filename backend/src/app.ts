@@ -10,8 +10,8 @@ const wss = new WebSocketServer({ port: 3001 });
 
 wss.on('connection', function connection(ws) {
     ws.on('message', function message(data) {
-      const parsedMessage: any = JSON.parse(data);
-      
+      const parsedMessage: any = JSON.parse(data.toString());
+            
       // If the sender connects, store the socket
       if (parsedMessage.type === 'offer') {
         senderSocket = ws;
