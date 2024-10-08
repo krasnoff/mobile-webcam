@@ -8,7 +8,7 @@
 import React, { useRef, useState } from 'react';
 import type {PropsWithChildren} from 'react';
 import { Button, Text, View } from 'react-native';
-import { mediaDevices, RTCPeerConnection, RTCView } from 'react-native-webrtc';
+import { mediaDevices, RTCIceCandidate, RTCPeerConnection, RTCView } from 'react-native-webrtc';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -63,10 +63,23 @@ function App(): React.JSX.Element {
       // Send offer to the signaling server
       ws.send(JSON.stringify(offer));
 
+      // Set up onicecandidate handler
+      (lc.current as any).onicecandidate = (event: any) => {
+        if (event.candidate) {
+          // Send candidate to the signaling server
+          ws.send(JSON.stringify({
+            type: 'candidate',
+            candidate: event.candidate,
+          }));
+        }
+      };
+
     } catch (error) {
       console.error('Error accessing media devices:', error);
     }
   }
+
+  
 
   ws.onopen = () => {
     // connection opened
