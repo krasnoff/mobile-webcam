@@ -88,6 +88,7 @@ function App(): React.JSX.Element {
   
   ws.onmessage = (e) => {
     // a message was received
+    // TODO add here
     console.log(e.data);
   };
   
