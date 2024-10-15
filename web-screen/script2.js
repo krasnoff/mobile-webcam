@@ -2,11 +2,24 @@ const remoteVideo = document.getElementById('remoteVideo');
 const pc = new RTCPeerConnection();
 
 // Set up WebSocket connection to signaling server
-const ws = new WebSocket('ws://localhost:3001');
+const ws = new WebSocket('ws://localhost:3001?socket=receiver');
+
+const isValidJSON = str => {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
 
 // Handle incoming WebSocket messages
 ws.onmessage = async (event) => {
-    const message = JSON.parse(event.data);
+    let message = {}; 
+    if (isValidJSON(event.data)) {
+      message = JSON.parse(event.data);
+    }
+    
 
     if (message.type === 'offer') {
         console.log('Received SDP offer from sender');
@@ -32,7 +45,7 @@ ws.onmessage = async (event) => {
     }
 }
 
-// Display the remote video stream when it's available
+// Display the remote video stream when it's available - כאן תכלס
 pc.ontrack = (event) => {
     remoteVideo.srcObject = event.streams[0];
 };

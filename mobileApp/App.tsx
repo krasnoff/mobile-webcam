@@ -8,7 +8,7 @@
 import React, { useRef, useState } from 'react';
 import type {PropsWithChildren} from 'react';
 import { Button, Text, View } from 'react-native';
-import { mediaDevices, RTCIceCandidate, RTCPeerConnection, RTCView } from 'react-native-webrtc';
+import { mediaDevices, RTCIceCandidate, RTCPeerConnection, RTCSessionDescription, RTCView } from 'react-native-webrtc';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -19,7 +19,7 @@ function App(): React.JSX.Element {
   const lc = useRef<RTCPeerConnection | null>(null);
 
   // Setup WebSocket to signaling server
-  const ws = new WebSocket('ws://192.168.1.128:3001');
+  const ws = new WebSocket('ws://192.168.1.128:3001?socket=sender');
 
   // Function to start the stream and add to RTCPeerConnection
   const startStream = async () => {
@@ -58,7 +58,7 @@ function App(): React.JSX.Element {
       // Set local description with the generated offer (SDP)
       await lc.current.setLocalDescription(offer);
 
-      console.log('SDP Offer:', offer); // This is your SDP that you can send to the remote peer
+      // console.log('SDP Offer:', offer); // This is your SDP that you can send to the remote peer
 
       // Send offer to the signaling server
       ws.send(JSON.stringify(offer));
@@ -82,24 +82,49 @@ function App(): React.JSX.Element {
   
 
   ws.onopen = () => {
-    // connection opened
-    ws.send(JSON.stringify({'sdp': 'something from mobile', 'type': 'test'})); // send a message
+    
   };
   
-  ws.onmessage = (e) => {
+  ws.onmessage = async (e) => {
     // a message was received
     // TODO add here
-    console.log(e.data);
+    const message = JSON.parse(e.data);
+
+    if (message.type === 'answer') {
+      // have to check if I recieve a remote description
+      console.log('Received SDP offer from sender');
+
+      // Set the offer as the remote description
+      await lc.current?.setRemoteDescription(new RTCSessionDescription(message));
+
+      // Create an SDP answer
+      //const answer = await lc.current?.createAnswer();
+      //await lc.current?.setLocalDescription(answer);
+
+      // Send the SDP answer back to the sender
+      //ws.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
+    }
+
+    // Handle ICE candidates (if applicable)
+    if (message.type === 'candidate') {
+      try {
+        console.log('this is ice candidate', message.candidate);
+        // TODO - have to check if I have a remote description
+        await lc.current?.addIceCandidate(new RTCIceCandidate(message.candidate));
+      } catch (e) {
+        console.error('Error adding received ICE candidate', e);
+      }
+    }
   };
   
   ws.onerror = (e) => {
     // an error occurred
-    console.log(e.message);
+    //console.log(e.message);
   };
   
   ws.onclose = (e) => {
     // connection closed
-    console.log(e.code, e.reason);
+    //console.log(e.code, e.reason);
   };
 
   return (
