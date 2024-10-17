@@ -63,6 +63,10 @@
                     offerToReceiveVideo: true,
                 })
                     .then(offer => {
+                        let offerSDP = offer.sdp;
+                        offerSDP = offerSDP.replace('useinbandfec=1', 'useinbandfec=1;profile-level-id=42e01f'); // For VP8
+
+                        offer.sdp = offerSDP;
                         return peerConnection.setLocalDescription(offer);
                     })
                     .then(() => {
