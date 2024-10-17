@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Receive Stream</title>
+    </head>
+    <body>
+        <h2>Received Stream</h2>
+        <video id="remoteVideo" autoplay playsinline></video>
+
+        <script>
+            const remoteVideo = document.getElementById('remoteVideo');
+            const socket = new WebSocket('ws://192.168.1.128:3000'); // WebSocket server URL
+            let peerConnection;
+
+            const configuration = {
+                iceServers: [
+                    {
+                    urls: 'stun:stun.l.google.com:19302'
+                    }
+                ]
+            };
+
+            // Helper function to convert Blob to string using async/await
+            function blobToString(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(reader.error);
+                    reader.readAsText(blob);
+                });
+            }
+
+            function startWebRTC() {
+                peerConnection = new RTCPeerConnection(configuration);
+
+                // Handle incoming remote stream
+                peerConnection.ontrack = (event) => {
+                    remoteVideo.srcObject = event.streams[0];
+                };
+
+                // ICE candidate handling
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
+                    }
+                };
+            }
+
+            // WebSocket message handling for signaling
+            socket.onmessage = async (message) => {
+                const messageStr = await blobToString(message.data);
+                const data = JSON.parse(messageStr);
+
+                if (data.type === 'offer') {
+                    startWebRTC();
+
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+                    .then(() => {
+                        return peerConnection.createAnswer();
+                    })
+                    .then(answer => {
+                        return peerConnection.setLocalDescription(answer);
+                    })
+                    .then(() => {
+                        socket.send(JSON.stringify({ type: 'answer', answer: peerConnection.localDescription }));
+                    });
+                } else if (data.type === 'candidate') {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+                };
+        </script>
+    </body>
+</html>

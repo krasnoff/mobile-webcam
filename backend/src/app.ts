@@ -26,8 +26,6 @@ wss.on('connection', function connection(ws, req) {
       // If the sender connects, store the socket
       if (parsedMessage.type === 'offer') {
         
-        console.log('Received SDP offer from sender', receiverSocket);
-
         // Forward the offer to the receiver
         if (receiverSocket) {
           receiverSocket.send(JSON.stringify({ type: 'offer', sdp: parsedMessage.sdp }));
@@ -48,9 +46,9 @@ wss.on('connection', function connection(ws, req) {
       // Handle ICE candidates (optional but necessary for most real-world connections)
       if (parsedMessage.type === 'candidate') {
         // Forward ICE candidates between peers
-        if (ws === senderSocket && receiverSocket) {
+        if (parsedMessage.source === 'sender') {
           receiverSocket.send(JSON.stringify({ type: 'candidate', candidate: parsedMessage.candidate }));
-        } else if (ws === receiverSocket && senderSocket) {
+        } else if (parsedMessage.source === 'receiver') {
           senderSocket.send(JSON.stringify({ type: 'candidate', candidate: parsedMessage.candidate }));
         }
       }

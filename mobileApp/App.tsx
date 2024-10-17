@@ -69,6 +69,7 @@ function App(): React.JSX.Element {
           // Send candidate to the signaling server
           ws.send(JSON.stringify({
             type: 'candidate',
+            source: 'sender',
             candidate: event.candidate,
           }));
         }
@@ -88,7 +89,7 @@ function App(): React.JSX.Element {
   ws.onmessage = async (e) => {
     // a message was received
     // TODO add here
-    const message = JSON.parse(e.data);
+    let message = JSON.parse(e.data);
 
     if (message.type === 'answer') {
       // have to check if I recieve a remote description
@@ -98,11 +99,11 @@ function App(): React.JSX.Element {
       await lc.current?.setRemoteDescription(new RTCSessionDescription(message));
 
       // Create an SDP answer
-      //const answer = await lc.current?.createAnswer();
-      //await lc.current?.setLocalDescription(answer);
+      // const answer = await lc.current?.createAnswer();
+      // await lc.current?.setLocalDescription(answer);
 
       // Send the SDP answer back to the sender
-      //ws.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
+      // ws.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
     }
 
     // Handle ICE candidates (if applicable)

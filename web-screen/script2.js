@@ -53,6 +53,6 @@ pc.ontrack = (event) => {
 // Exchange ICE candidates between peers
 pc.onicecandidate = (event) => {
     if (event.candidate) {
-      ws.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
+      ws.send(JSON.stringify({ type: 'candidate', source: 'receiver', candidate: event.candidate }));
     }
 };

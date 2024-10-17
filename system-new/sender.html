@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>sender - camera</title>
+    </head>
+    <body>
+        <h2>Webcam Stream</h2>
+        <video id="localVideo" autoplay playsinline></video>
+
+        <script>
+            const localVideo = document.getElementById('localVideo');
+            const socket = new WebSocket('ws://localhost:3000'); // WebSocket server URL
+            let peerConnection;
+
+            // WebRTC configuration
+            const configuration = {
+                iceServers: [
+                    {
+                    urls: 'stun:stun.l.google.com:19302'
+                    }
+                ]
+            };
+
+            // Helper function to convert Blob to string using async/await
+            function blobToString(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(reader.error);
+                    reader.readAsText(blob);
+                });
+            }
+
+            // Start webcam capture
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                localVideo.srcObject = stream;
+                startWebRTC(stream);
+            })
+            .catch(error => {
+                console.error('Error accessing media devices.', error);
+            });
+
+            // create the peer connection - RTCPeerConnection
+            function startWebRTC(stream) {
+                peerConnection = new RTCPeerConnection(configuration);
+
+                // Add all media tracks (audio + video) to the connection
+                stream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, stream);
+                });
+
+                // ICE candidate handling
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
+                    }
+                };
+
+                // Create WebRTC offer
+                peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true,
+                })
+                    .then(offer => {
+                        return peerConnection.setLocalDescription(offer);
+                    })
+                    .then(() => {
+                        socket.send(JSON.stringify({ type: 'offer', offer: peerConnection.localDescription }));
+                    });
+            }
+
+            // WebSocket message handling for signaling
+            socket.onmessage = async (message) => {
+                const messageStr = await blobToString(message.data);
+                const data = JSON.parse(messageStr);
+
+                if (data.type === 'answer') {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                } else if (data.type === 'candidate') {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            };
+        </script>
+    </body>
+</html>
