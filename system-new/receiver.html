@@ -9,7 +9,7 @@
 
         <script>
             const remoteVideo = document.getElementById('remoteVideo');
-            const socket = new WebSocket('ws://192.168.1.128:3000'); // WebSocket server URL
+            const socket = new WebSocket('ws://127.0.0.1:3000'); // WebSocket server URL
             let peerConnection;
 
             const configuration = {
@@ -41,6 +41,7 @@
                 // ICE candidate handling
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate) {
+                        console.log('Sending ICE candidate:', event.candidate);
                         socket.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
                     }
                 };
@@ -48,13 +49,12 @@
 
             // WebSocket message handling for signaling
             socket.onmessage = async (message) => {
-                const messageStr = await blobToString(message.data);
-                const data = JSON.parse(messageStr);
+                const data = JSON.parse(message.data);
 
                 if (data.type === 'offer') {
                     startWebRTC();
 
-                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer ? data.offer : data))
                     .then(() => {
                         return peerConnection.createAnswer();
                     })
@@ -63,9 +63,16 @@
                     })
                     .then(() => {
                         socket.send(JSON.stringify({ type: 'answer', answer: peerConnection.localDescription }));
+                    })
+                    .catch((error) => {
+                        console.error('offer error', error);
                     });
                 } else if (data.type === 'candidate') {
-                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    if (data.candidate !== '') {
+                        console.log('Received ICE candidate:', data.candidate);
+                        peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    }
+                    
                 }
                 };
         </script>

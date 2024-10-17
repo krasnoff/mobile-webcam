@@ -76,8 +76,7 @@
 
             // WebSocket message handling for signaling
             socket.onmessage = async (message) => {
-                const messageStr = await blobToString(message.data);
-                const data = JSON.parse(messageStr);
+                const data = JSON.parse(message.data);
 
                 if (data.type === 'answer') {
                     peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
