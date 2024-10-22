@@ -9,7 +9,7 @@
 
         <script>
             const localVideo = document.getElementById('localVideo');
-            const socket = new WebSocket('ws://192.168.1.128:3000'); // WebSocket server URL
+            const socket = new WebSocket('ws://localhost:3000'); // WebSocket server URL
             let peerConnection;
 
             // WebRTC configuration
@@ -20,16 +20,6 @@
                     }
                 ]
             };
-
-            // Helper function to convert Blob to string using async/await
-            function blobToString(blob) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = () => reject(reader.error);
-                    reader.readAsText(blob);
-                });
-            }
 
             // Start webcam capture
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })

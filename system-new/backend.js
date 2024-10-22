@@ -3,16 +3,6 @@ const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 3000 });
 
-// Helper function to convert Blob to string using async/await
-function blobToString(blob) {
-  return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsText(blob);
-  });
-}
-
 wss.on('connection', (ws) => {
   ws.on('message', async (message) => {
     // Relay signaling messages to all connected clients except sender
