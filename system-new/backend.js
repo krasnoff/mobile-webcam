@@ -7,8 +7,9 @@ wss.on('connection', (ws) => {
   ws.on('message', async (message) => {
     // Relay signaling messages to all connected clients except sender
     message = message.toString('utf8');
-    
 
+    // right now we are just relaying messages
+    // we can add authentication and room management later   
     wss.clients.forEach(client => {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
         client.send(message);

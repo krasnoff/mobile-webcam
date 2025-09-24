@@ -9,8 +9,11 @@
 
         <script>
             const localVideo = document.getElementById('localVideo');
-            const socket = new WebSocket('ws://localhost:3000'); // WebSocket server URL
+            const socket = new WebSocket('ws://192.168.1.127:3000'); // WebSocket server URL
             let peerConnection;
+            const params = new URLSearchParams(location.search);
+            const senderId = params.get('id') || `send-${Math.random().toString(36).slice(2, 8)}`;
+            const targetId = params.get('to'); // required to target a specific receiver
 
             // WebRTC configuration
             const configuration = {
@@ -43,7 +46,9 @@
                 // ICE candidate handling
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate) {
-                        socket.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
+                        const payload = { type: 'candidate', candidate: event.candidate, from: senderId };
+                        if (targetId) payload.to = targetId;
+                        socket.send(JSON.stringify(payload));
                     }
                 };
 
@@ -60,7 +65,9 @@
                         return peerConnection.setLocalDescription(offer);
                     })
                     .then(() => {
-                        socket.send(JSON.stringify({ type: 'offer', offer: peerConnection.localDescription }));
+                        const payload = { type: 'offer', offer: peerConnection.localDescription, from: senderId };
+                        if (targetId) payload.to = targetId;
+                        socket.send(JSON.stringify(payload));
                     });
             }
 
@@ -68,12 +75,21 @@
             socket.onmessage = async (message) => {
                 const data = JSON.parse(message.data);
 
+                // Only process messages from our target receiver (if specified)
+                if (targetId && data.from && data.from !== targetId) return;
+
                 if (data.type === 'answer') {
                     peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                 } else if (data.type === 'candidate') {
                     peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
                 }
             };
+
+            // Register this sender with the signaling server
+            socket.addEventListener('open', () => {
+                socket.send(JSON.stringify({ type: 'register', id: senderId }));
+                console.log('Registered sender with id:', senderId, 'target:', targetId);
+            });
         </script>
     </body>
 </html>
